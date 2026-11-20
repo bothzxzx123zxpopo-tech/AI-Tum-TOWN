@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Tum TOWN — Gacha & Roblox Bridge</title>
+  <style>
+    :root {
+      --bg-dark: #0f0a1e;
+      --bg-card: #1b1233;
+      --bg-card-2: #241845;
+      --purple: #7c3aed;
+      --purple-bright: #a855f7;
+      --pink: #ec4899;
+      --text: #f5f3ff;
+      --muted: #b7aed6;
+      --border: rgba(192, 132, 252, 0.25);
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: radial-gradient(circle at top right, #2e1065 0%, var(--bg-dark) 55%);
+      color: var(--text); padding: 24px 16px 60px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;
+      margin-bottom: 20px; padding: 18px 22px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.28), rgba(236, 72, 153, 0.18));
+      border: 1px solid var(--border); border-radius: 18px;
+    }
+    .brand h1 {
+      margin: 0; font-size: 24px;
+      background: linear-gradient(90deg, #e9d5ff, #f9a8d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+      border-radius: 999px; background: rgba(15, 10, 30, 0.75); border: 1px solid var(--border); font-size: 13px;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+    .dot.online { background: var(--ok); }
+    .dot.offline { background: var(--err); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px;
+      padding: 20px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    }
+    .card h2 { margin: 0 0 14px; font-size: 17px; color: #f3e8ff; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; margin-top: 12px; }
+    label:first-of-type { margin-top: 0; }
+    input, select {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(192, 132, 252, 0.3); background: var(--bg-card-2);
+      color: var(--text); font-size: 14px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--purple-bright); }
+    .row-btn { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    button {
+      cursor: pointer; border: none; border-radius: 11px; padding: 11px 16px;
+      font-size: 14px; font-weight: 600; color: #fff;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+    }
+    button.secondary { background: rgba(168, 85, 247, 0.2); border: 1px solid var(--border); color: #f3e8ff; }
+    .player-box {
+      display: none; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px;
+      border-radius: 12px; background: rgba(124, 58, 237, 0.16); border: 1px solid var(--border);
+    }
+    .player-box.show { display: flex; }
+    .player-box img { width: 48px; height: 48px; border-radius: 10px; background: #120b24; object-fit: cover; }
+    .gacha-result {
+      margin-top: 14px; padding: 14px; border-radius: 12px;
+      background: var(--bg-card-2); border: 1px dashed rgba(244, 114, 182, 0.5); min-height: 68px;
+    }
+    .log-box { margin-top: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(192, 132, 252, 0.14); }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.Pending { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .badge.Delivered { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; max-width: 360px; padding: 12px 16px;
+      border-radius: 12px; background: #2e1065; border: 1px solid var(--purple-bright);
+      color: #fff; font-size: 13px; opacity: 0; transform: translateY(12px);
+      transition: all 0.25s ease; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>AI Tum TOWN</h1>
+        <p>Gacha & Real-Time Roblox Bridge Dashboard</p>
+      </div>
+      <div class="status-pill">
+        <span id="statusDot" class="dot"></span>
+        <span id="statusText">กำลังตรวจสอบเซิร์ฟเวอร์...</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1. ผู้เล่น Roblox</h2>
+        <label for="robloxUserId">Roblox User ID (ตัวเลขของผู้เล่น)</label>
+        <input id="robloxUserId" type="text" placeholder="เช่น 1" />
+        <div class="row-btn">
+          <button type="button" class="secondary" onclick="verifyRobloxUser()">ตรวจสอบบัญชี Roblox</button>
+          <button type="button" class="secondary" onclick="refreshOrders()">รีเฟรชคิว</button>
+        </div>
+        <div id="playerBox" class="player-box">
+          <img id="playerAvatar" src="" alt="avatar" />
+          <div>
+            <div id="playerName" style="font-weight:700;">-</div>
+            <div id="playerMeta" style="font-size:12px;color:var(--muted);">-</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. สุ่มกาชา & ส่งเข้าเกม Roblox</h2>
+        <label for="itemSelect">เลือกไอเทม หรือกดสุ่มกาชา</label>
+        <select id="itemSelect">
+          <option value="SWORD_STAR|ดาบแห่งแสงดาว|1">ดาบแห่งแสงดาว (SWORD_STAR)</option>
+          <option value="WING_SAKURA|ปีกซากุระเวทมนตร์|1">ปีกซากุระเวทมนตร์ (WING_SAKURA)</option>
+          <option value="POTION_MANA|น้ำยาฟื้นมานา|3">น้ำยาฟื้นมานา x3 (POTION_MANA)</option>
+          <option value="PET_FOX|จิ้งจอกมิติ|1">จิ้งจอกมิติ (PET_FOX)</option>
+          <option value="GEM_BOX|กล่องอัญมณี AI Tum|2">กล่องอัญมณี AI Tum x2 (GEM_BOX)</option>
+        </select>
+        <label for="itemAmount">จำนวน</label>
+        <input id="itemAmount" type="number" min="1" max="50" value="1" />
+        <div class="row-btn">
+          <button type="button" class="secondary" onclick="rollGacha()">สุ่มกาชา</button>
+          <button type="button" onclick="enqueueOrder()">ส่งเข้าเกมทันที</button>
+        </div>
+        <div id="gachaResult" class="gacha-result">
+          กรอก User ID แล้วกด <b>สุ่มกาชา</b> หรือ <b>ส่งเข้าเกมทันที</b> ได้เลยครับ
+        </div>
+      </section>
+    </div>
+
+    <section class="card log-box">
+      <h2>3. รายการคิวส่งของของผู้เล่น</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>User ID</th>
+            <th>ไอเทม</th>
+            <th>จำนวน</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr><td colspan="5" style="color:var(--muted);text-align:center;">ยังไม่มีรายการคิว</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const API_BASE = `${window.location.origin}/api/roblox`;
+    let verifiedUsername = "";
+
+    const pool = [
+      { code: "SWORD_STAR", name: "ดาบแห่งแสงดาว", amount: 1 },
+      { code: "WING_SAKURA", name: "ปีกซากุระเวทมนตร์", amount: 1 },
+      { code: "POTION_MANA", name: "น้ำยาฟื้นมานา", amount: 3 },
+      { code: "PET_FOX", name: "จิ้งจอกมิติ", amount: 1 },
+      { code: "GEM_BOX", name: "กล่องอัญมณี AI Tum", amount: 2 }
+    ];
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove("show"), 3000);
+    }
+
+    async function checkHealth() {
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+      try {
+        const res = await fetch(`${window.location.origin}/api/health`);
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          dot.className = "dot online";
+          text.textContent = `ออนไลน์ (รอส่ง ${data.pendingCount} รายการ)`;
+          return;
+        }
+        throw new Error();
+      } catch (_) {
+        dot.className = "dot offline";
+        text.textContent = "เซิร์ฟเวอร์ยังไม่พร้อม";
+      }
+    }
+
+    async function verifyRobloxUser() {
+      const uid = document.getElementById("robloxUserId").value.trim();
+      if (!/^\d+$/.test(uid)) {
+        showToast("กรุณากรอก Roblox User ID เป็นตัวเลข");
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/verify-user/${uid}`);
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showToast(data.error || "ไม่พบผู้เล่น");
+          return;
+        }
+        verifiedUsername = data.username;
+        document.getElementById("playerName").textContent = `${data.displayName} (@${data.username})`;
+        document.getElementById("playerMeta").textContent = `User ID: ${data.userId}`;
+        if (data.avatarUrl) document.getElementById("playerAvatar").src = data.avatarUrl;
+        document.getElementById("playerBox").classList.add("show");
+        showToast(`พบผู้เล่น @${data.username}`);
+        refreshOrders();
+      } catch (_) {
+        showToast("ตรวจสอบ User ID ไม่สำเร็จ");
+      }
+    }
+
+    function rollGacha() {
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      document.getElementById("itemSelect").value = `${picked.code}|${picked.name}|${picked.amount}`;
+      document.getElementById("itemAmount").value = picked.amount;
+      document.getElementById("gachaResult").innerHTML =
+        `สุ่มได้: <b>${picked.name}</b> (<code>${picked.code}</code>) x${picked.amount}`;
+      showToast(`สุ่มได้ ${picked.name}`);
+    }
+
+    async function enqueueOrder() {
+      const uid = document.getElementById("robloxUserId").value.trim();
+      if (!/^\d+$/.test(uid)) {
+        showToast("กรุณากรอก Roblox User ID ก่อน");
+        return;
+      }
+      const [code, name] = document.getElementById("itemSelect").value.split("|");
+      const amount = Math.max(1, Number(document.getElementById("itemAmount").value) || 1);
+
+      try {
+        const res = await fetch(`${API_BASE}/enqueue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: uid, username: verifiedUsername, itemCode: code, itemName: name, amount })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showToast(data.error || "ส่งคิวไม่สำเร็จ");
+          return;
+        }
+        document.getElementById("gachaResult").innerHTML =
+          `ส่งคิวแล้ว: <b>${data.order.itemName}</b> x${data.order.amount} → User ID <b>${data.order.userId}</b><br/><span style="font-size:12px;color:#fcd34d;">Order ID: ${data.order.orderId}</span>`;
+        showToast("ส่งคิวเข้าเกมเรียบร้อย");
+        refreshOrders();
+        checkHealth();
+      } catch (_) {
+        showToast("ส่งคิวไม่สำเร็จ");
+      }
+    }
+
+    async function refreshOrders() {
+      const uid = document.getElementById("robloxUserId").value.trim();
+      if (!/^\d+$/.test(uid)) return;
+      try {
+        const res = await fetch(`${API_BASE}/status/${uid}`);
+        const data = await res.json();
+        const tbody = document.getElementById("ordersBody");
+        if (!res.ok || !data.ok || !Array.isArray(data.orders) || data.orders.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;">ยังไม่มีรายการของ User ID นี้</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = data.orders.slice().reverse().map((o) => `
+          <tr>
+            <td><code>${o.orderId}</code></td>
+            <td>${o.userId}</td>
+            <td>${o.itemName} (${o.itemCode})</td>
+            <td>${o.amount}</td>
+            <td><span class="badge ${o.status}">${o.status}</span></td>
+          </tr>
+        `).join("");
+      } catch (_) {}
+    }
+
+    checkHealth();
+    setInterval(refreshOrders, 4000);
+  </script>
+</body>
+</html>
